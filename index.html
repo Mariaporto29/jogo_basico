@@ -5,14 +5,57 @@
 </head>
 <body>
     <h1>🎮 Jogo do Ninja</h1>
-    <p>Tente descobrir qual ninja foi escolhido!</p>
+    <p>Tente descobrir qual ninja foi escolhido para a missão!</p>
     
-    <button>Naruto</button>
-    <button>Itachi</button>
-    <button>Gaara</button>
-    <button>Ino</button>
-    <button>Madara</button>
-    <Button>Sasuke</Button>
-    <button>Sakura</button>
+    <button onclick="jogar('naruto')">Naruto</button>
+    <button onclick="jogar('Itachi')">itachi</button>
+    <button onclick="jogar('Gaara')">Gaara</button>
+    <button onclick="jogar('Ino')">Ino</button>
+    <button onclick="jogar ('Madara')">Madara</button>
+    <button onclick="jogar ('Sasuke')">Sasuke</button>
+    <button onclick="jogar ('Sakura')">Sakura</button>
+
+    <p id="resultado"><</p>
+
+    <button onclick="novoJogo()">Jogar de novo</button>
+
+    <p>Acertos: <span id="Acertos">0</span></p>
+    <p>Erros: <span id="Erros">0</span></p>
+
+    <script>
+            let jogoAtivo = true
+            let ninjas = ["naruto", "itachi", "Gaara", "Ino", "Madara", "Sasuke", "Sakura"]
+            let ninjaSecreto = ninjas[Math.floor(Math.random() * ninjas.length)]
+
+            let Acertos = 0
+            let Erros = 0 
+         
+            function jogar(palpite) {
+                let resultado = document.getElementById("resultado")
+
+                if (palpite == ninjaSecreto) {
+
+                    resultado.innerText = " Amassou em! " + ninjaSecreto
+                    
+                    Acertos = acertos + 1 
+                    document.getElementById("Acertos").innerText = Acertos
+
+                } else {
+                    resultado.innerText = "Mandou mal em foi o(a) " + ninjaSecreto
+
+                    Erros = Erros + 1
+                    document.getElementById("Erros").innerText = Erros
+
+                    let jogoAtivo = true
+                    
+                
+                }    
+                function novoJogo() {
+                    ninjaSecreto = ninjas[Math.floor(Math.random() * ninjas.length)]
+                    document.getElementById("resultado").innerText = "Novo ninja escolhido! Tenta adivinhar"
+                }
+            }
+
+    </script>
 </body>
 </html>
