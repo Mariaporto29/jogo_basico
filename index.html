@@ -1,61 +1,348 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-    <title>Jogo do Ninja</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Desvie dos Inimigos</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: linear-gradient(180deg, #0f172a, #020617);
+      font-family: Arial, sans-serif;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      font-size: 32px;
+    }
+
+    p {
+      margin-bottom: 15px;
+      color: #cbd5e1;
+    }
+
+    #game-container {
+      position: relative;
+      width: 400px;
+      height: 600px;
+      background: #111827;
+      border: 3px solid #334155;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+    }
+
+    #player {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: #3b82f6;
+      bottom: 20px;
+      left: 175px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+    }
+
+    .enemy {
+      position: absolute;
+      width: 45px;
+      height: 45px;
+      background: #ef4444;
+      border-radius: 10px;
+      top: -50px;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+    }
+
+    #hud {
+      width: 400px;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    #game-over {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.82);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 10;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #game-over h2 {
+      font-size: 36px;
+      margin-bottom: 12px;
+      color: #f87171;
+    }
+
+    #game-over p {
+      color: white;
+      margin-bottom: 20px;
+      font-size: 20px;
+    }
+
+    button {
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      background: #7c3aed;
+    }
+
+    .instructions {
+      margin-top: 15px;
+      color: #94a3b8;
+      text-align: center;
+      line-height: 1.5;
+    }
+  </style>
 </head>
 <body>
-    <h1>🎮 Jogo do Ninja</h1>
-    <p>Tente descobrir qual ninja foi escolhido para a missão!</p>
-    
-    <button onclick="jogar('naruto')">Naruto</button>
-    <button onclick="jogar('Itachi')">itachi</button>
-    <button onclick="jogar('Gaara')">Gaara</button>
-    <button onclick="jogar('Ino')">Ino</button>
-    <button onclick="jogar ('Madara')">Madara</button>
-    <button onclick="jogar ('Sasuke')">Sasuke</button>
-    <button onclick="jogar ('Sakura')">Sakura</button>
+  <h1>Desvie dos Inimigos</h1>
+  <p>Use as setas do teclado ou A / D para se mover</p>
 
-    <p id="resultado"><</p>
+  <div id="hud">
+    <span>Pontos: <span id="score">0</span></span>
+    <span>Recorde: <span id="high-score">0</span></span>
+  </div>
 
-    <button onclick="novoJogo()">Jogar de novo</button>
+  <div id="game-container">
+    <div id="player"></div>
 
-    <p>Acertos: <span id="Acertos">0</span></p>
-    <p>Erros: <span id="Erros">0</span></p>
+    <div id="game-over">
+      <h2>Game Over</h2>
+      <p>Sua pontuação: <span id="final-score">0</span></p>
+      <button onclick="restartGame()">Jogar novamente</button>
+    </div>
+  </div>
 
-    <script>
-            let jogoAtivo = true
-            let ninjas = ["naruto", "itachi", "Gaara", "Ino", "Madara", "Sasuke", "Sakura"]
-            let ninjaSecreto = ninjas[Math.floor(Math.random() * ninjas.length)]
+  <div class="instructions">
+    Sobreviva o máximo que puder.<br />
+    Quanto mais tempo passar, mais difícil fica.
+  </div>
 
-            let Acertos = 0
-            let Erros = 0 
-         
-            function jogar(palpite) {
-                let resultado = document.getElementById("resultado")
+  <script>
+    const gameContainer = document.getElementById("game-container");
+    const player = document.getElementById("player");
+    const scoreDisplay = document.getElementById("score");
+    const highScoreDisplay = document.getElementById("high-score");
+    const gameOverScreen = document.getElementById("game-over");
+    const finalScoreDisplay = document.getElementById("final-score");
 
-                if (palpite == ninjaSecreto) {
+    const gameWidth = 400;
+    const gameHeight = 600;
+    const playerWidth = 50;
+    const playerHeight = 50;
 
-                    resultado.innerText = " Amassou em! " + ninjaSecreto
-                    
-                    Acertos = acertos + 1 
-                    document.getElementById("Acertos").innerText = Acertos
+    let playerX = 175;
+    let score = 0;
+    let highScore = localStorage.getItem("highScoreJogoBasico") || 0;
+    let gameRunning = true;
+    let enemies = [];
+    let enemySpeed = 3;
+    let spawnRate = 1000;
+    let moveLeft = false;
+    let moveRight = false;
+    let animationId;
+    let scoreInterval;
+    let enemyInterval;
+    let difficultyInterval;
 
-                } else {
-                    resultado.innerText = "Mandou mal em foi o(a) " + ninjaSecreto
+    highScoreDisplay.textContent = highScore;
 
-                    Erros = Erros + 1
-                    document.getElementById("Erros").innerText = Erros
+    function updatePlayerPosition() {
+      if (moveLeft) {
+        playerX -= 7;
+      }
+      if (moveRight) {
+        playerX += 7;
+      }
 
-                    let jogoAtivo = true
-                    
-                
-                }    
-                function novoJogo() {
-                    ninjaSecreto = ninjas[Math.floor(Math.random() * ninjas.length)]
-                    document.getElementById("resultado").innerText = "Novo ninja escolhido! Tenta adivinhar"
-                }
-            }
+      if (playerX < 0) playerX = 0;
+      if (playerX > gameWidth - playerWidth) playerX = gameWidth - playerWidth;
 
-    </script>
+      player.style.left = playerX + "px";
+    }
+
+    function createEnemy() {
+      if (!gameRunning) return;
+
+      const enemy = document.createElement("div");
+      enemy.classList.add("enemy");
+
+      const enemyX = Math.floor(Math.random() * (gameWidth - 45));
+      enemy.style.left = enemyX + "px";
+      enemy.style.top = "-50px";
+
+      gameContainer.appendChild(enemy);
+
+      enemies.push({
+        element: enemy,
+        x: enemyX,
+        y: -50,
+        width: 45,
+        height: 45
+      });
+    }
+
+    function moveEnemies() {
+      enemies.forEach((enemy, index) => {
+        enemy.y += enemySpeed;
+        enemy.element.style.top = enemy.y + "px";
+
+        if (checkCollision(enemy)) {
+          endGame();
+        }
+
+        if (enemy.y > gameHeight) {
+          enemy.element.remove();
+          enemies.splice(index, 1);
+        }
+      });
+    }
+
+    function checkCollision(enemy) {
+      const playerRect = {
+        x: playerX,
+        y: gameHeight - 20 - playerHeight,
+        width: playerWidth,
+        height: playerHeight
+      };
+
+      return (
+        playerRect.x < enemy.x + enemy.width &&
+        playerRect.x + playerRect.width > enemy.x &&
+        playerRect.y < enemy.y + enemy.height &&
+        playerRect.y + playerRect.height > enemy.y
+      );
+    }
+
+    function gameLoop() {
+      if (!gameRunning) return;
+
+      updatePlayerPosition();
+      moveEnemies();
+
+      animationId = requestAnimationFrame(gameLoop);
+    }
+
+    function startScore() {
+      scoreInterval = setInterval(() => {
+        if (!gameRunning) return;
+        score++;
+        scoreDisplay.textContent = score;
+      }, 100);
+    }
+
+    function startEnemies() {
+      enemyInterval = setInterval(() => {
+        createEnemy();
+      }, spawnRate);
+    }
+
+    function increaseDifficulty() {
+      difficultyInterval = setInterval(() => {
+        if (!gameRunning) return;
+
+        if (enemySpeed < 10) {
+          enemySpeed += 0.5;
+        }
+
+        if (spawnRate > 350) {
+          spawnRate -= 80;
+          clearInterval(enemyInterval);
+          startEnemies();
+        }
+      }, 4000);
+    }
+
+    function endGame() {
+      gameRunning = false;
+      cancelAnimationFrame(animationId);
+      clearInterval(scoreInterval);
+      clearInterval(enemyInterval);
+      clearInterval(difficultyInterval);
+
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("highScoreJogoBasico", highScore);
+        highScoreDisplay.textContent = highScore;
+      }
+
+      finalScoreDisplay.textContent = score;
+      gameOverScreen.style.display = "flex";
+    }
+
+    function restartGame() {
+      enemies.forEach(enemy => enemy.element.remove());
+      enemies = [];
+
+      playerX = 175;
+      score = 0;
+      enemySpeed = 3;
+      spawnRate = 1000;
+      gameRunning = true;
+
+      player.style.left = playerX + "px";
+      scoreDisplay.textContent = score;
+      gameOverScreen.style.display = "none";
+
+      startGame();
+    }
+
+    function startGame() {
+      startScore();
+      startEnemies();
+      increaseDifficulty();
+      gameLoop();
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") {
+        moveLeft = true;
+      }
+
+      if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") {
+        moveRight = true;
+      }
+    });
+
+    document.addEventListener("keyup", (event) => {
+      if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") {
+        moveLeft = false;
+      }
+
+      if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") {
+        moveRight = false;
+      }
+    });
+
+    startGame();
+  </script>
 </body>
 </html>
