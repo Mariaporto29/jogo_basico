@@ -3,282 +3,717 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Desvie dos Inimigos</title>
+  <title>VOID RUNNER</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    :root {
+      --neon-blue: #00f0ff;
+      --neon-pink: #ff006e;
+      --neon-purple: #7b2fff;
+      --dark: #030712;
+      --darker: #010409;
     }
 
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      background: linear-gradient(180deg, #0f172a, #020617);
-      font-family: Arial, sans-serif;
+      background: var(--darker);
+      font-family: 'Orbitron', monospace;
       color: white;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       min-height: 100vh;
-      padding: 20px;
-    }
-
-    h1 {
-      margin-bottom: 10px;
-      font-size: 32px;
-    }
-
-    p {
-      margin-bottom: 15px;
-      color: #cbd5e1;
-    }
-
-    #game-container {
-      position: relative;
-      width: 400px;
-      height: 600px;
-      background: #111827;
-      border: 3px solid #334155;
-      border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
     }
 
-    #player {
-      position: absolute;
-      width: 50px;
-      height: 50px;
-      background: #3b82f6;
-      bottom: 20px;
-      left: 175px;
-      border-radius: 12px;
-      box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+    /* Fundo com grade animada */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,240,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,240,255,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      animation: gridMove 8s linear infinite;
+      pointer-events: none;
+      z-index: 0;
     }
 
-    .enemy {
-      position: absolute;
-      width: 45px;
-      height: 45px;
-      background: #ef4444;
-      border-radius: 10px;
-      top: -50px;
-      box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+    @keyframes gridMove {
+      0% { background-position: 0 0; }
+      100% { background-position: 0 40px; }
     }
 
-    #hud {
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .title {
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: 8px;
+      color: var(--neon-blue);
+      text-shadow: 0 0 10px var(--neon-blue), 0 0 30px var(--neon-blue), 0 0 60px rgba(0,240,255,0.3);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { text-shadow: 0 0 10px var(--neon-blue), 0 0 30px var(--neon-blue); }
+      50% { text-shadow: 0 0 20px var(--neon-blue), 0 0 60px var(--neon-blue), 0 0 100px rgba(0,240,255,0.5); }
+    }
+
+    .subtitle {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 4px;
+      color: rgba(0,240,255,0.5);
+      margin-top: -8px;
+    }
+
+    /* HUD */
+    .hud {
       width: 400px;
       display: flex;
       justify-content: space-between;
-      margin-bottom: 12px;
-      font-size: 18px;
-      font-weight: bold;
+      align-items: center;
     }
 
+    .hud-box {
+      background: rgba(0,240,255,0.05);
+      border: 1px solid rgba(0,240,255,0.2);
+      border-radius: 6px;
+      padding: 6px 14px;
+      text-align: center;
+    }
+
+    .hud-label {
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: rgba(0,240,255,0.5);
+    }
+
+    .hud-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--neon-blue);
+      text-shadow: 0 0 10px var(--neon-blue);
+    }
+
+    .lives {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .heart {
+      font-size: 18px;
+      transition: all 0.3s;
+      filter: drop-shadow(0 0 6px #ff006e);
+    }
+
+    .heart.lost {
+      opacity: 0.2;
+      filter: none;
+    }
+
+    /* Canvas do jogo */
+    #game-container {
+      position: relative;
+      width: 400px;
+      height: 580px;
+      background: #030712;
+      border: 1px solid rgba(0,240,255,0.3);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(0,240,255,0.1),
+        0 0 40px rgba(0,240,255,0.1),
+        inset 0 0 80px rgba(0,0,0,0.8);
+    }
+
+    /* Scanlines */
+    #game-container::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 20;
+      border-radius: 12px;
+    }
+
+    /* Jogador */
+    #player {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      bottom: 20px;
+      left: 178px;
+      z-index: 5;
+      transition: left 0.05s linear;
+    }
+
+    #player svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 0 8px var(--neon-blue)) drop-shadow(0 0 20px rgba(0,240,255,0.5));
+    }
+
+    /* Trail do jogador */
+    .player-trail {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--neon-blue);
+      opacity: 0.6;
+      pointer-events: none;
+      z-index: 4;
+      animation: trailFade 0.4s forwards;
+    }
+
+    @keyframes trailFade {
+      to { opacity: 0; transform: scale(0); }
+    }
+
+    /* Inimigos */
+    .enemy {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      top: -50px;
+      z-index: 5;
+    }
+
+    .enemy svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Power-up */
+    .powerup {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      top: -40px;
+      z-index: 5;
+      animation: rotatePowerup 2s linear infinite;
+    }
+
+    @keyframes rotatePowerup {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Partículas de explosão */
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* Estrelas de fundo */
+    .star {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      animation: starFall linear infinite;
+      opacity: 0.6;
+    }
+
+    @keyframes starFall {
+      from { transform: translateY(-10px); }
+      to { transform: translateY(600px); }
+    }
+
+    /* Efeito de dano */
+    .damage-flash {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,0,110,0.25);
+      pointer-events: none;
+      z-index: 15;
+      animation: flashOut 0.3s forwards;
+      border-radius: 12px;
+    }
+
+    @keyframes flashOut {
+      to { opacity: 0; }
+    }
+
+    /* Shield */
+    .shield-ring {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 2px solid var(--neon-blue);
+      box-shadow: 0 0 10px var(--neon-blue), inset 0 0 10px rgba(0,240,255,0.2);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation: shieldPulse 1s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 6;
+    }
+
+    @keyframes shieldPulse {
+      0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 0.6; transform: translate(-50%, -50%) scale(1.1); }
+    }
+
+    /* Game over */
     #game-over {
       position: absolute;
       inset: 0;
-      background: rgba(0, 0, 0, 0.82);
+      background: rgba(3,7,18,0.95);
       display: none;
       align-items: center;
       justify-content: center;
       flex-direction: column;
-      z-index: 10;
-      text-align: center;
-      padding: 20px;
+      z-index: 30;
+      border-radius: 12px;
+      gap: 12px;
     }
 
     #game-over h2 {
-      font-size: 36px;
-      margin-bottom: 12px;
-      color: #f87171;
+      font-size: 42px;
+      font-weight: 900;
+      color: var(--neon-pink);
+      letter-spacing: 6px;
+      text-shadow: 0 0 20px var(--neon-pink), 0 0 60px rgba(255,0,110,0.4);
     }
 
-    #game-over p {
-      color: white;
-      margin-bottom: 20px;
+    .go-score {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      color: rgba(255,255,255,0.6);
+      letter-spacing: 2px;
+    }
+
+    .go-score span {
+      color: var(--neon-blue);
       font-size: 20px;
     }
 
-    button {
-      background: #8b5cf6;
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 10px;
-      font-size: 16px;
+    .btn {
+      background: transparent;
+      color: var(--neon-blue);
+      border: 1px solid var(--neon-blue);
+      padding: 12px 32px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'Orbitron', monospace;
+      letter-spacing: 3px;
       cursor: pointer;
-      transition: 0.2s;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      margin-top: 8px;
+      box-shadow: 0 0 10px rgba(0,240,255,0.2);
     }
 
-    button:hover {
-      transform: scale(1.05);
-      background: #7c3aed;
+    .btn:hover {
+      background: rgba(0,240,255,0.1);
+      box-shadow: 0 0 20px rgba(0,240,255,0.4);
+      transform: scale(1.03);
     }
 
-    .instructions {
-      margin-top: 15px;
-      color: #94a3b8;
+    /* Tela de início */
+    #start-screen {
+      position: absolute;
+      inset: 0;
+      background: rgba(3,7,18,0.97);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 30;
+      border-radius: 12px;
+      gap: 16px;
+    }
+
+    #start-screen h2 {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--neon-blue);
+      letter-spacing: 4px;
+      text-shadow: 0 0 20px var(--neon-blue);
+    }
+
+    .instructions-list {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 1px;
+      line-height: 2;
       text-align: center;
-      line-height: 1.5;
+    }
+
+    .instructions-list b {
+      color: var(--neon-blue);
+    }
+
+    /* Shield bar */
+    .powerup-bar {
+      width: 400px;
+      height: 4px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .powerup-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+      width: 0%;
+      transition: width 0.1s;
+      box-shadow: 0 0 8px var(--neon-blue);
+    }
+
+    /* Controles mobile */
+    .mobile-controls {
+      display: flex;
+      gap: 20px;
+      margin-top: 4px;
+    }
+
+    .ctrl-btn {
+      background: rgba(0,240,255,0.07);
+      border: 1px solid rgba(0,240,255,0.3);
+      color: var(--neon-blue);
+      width: 64px;
+      height: 48px;
+      border-radius: 8px;
+      font-size: 22px;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.1s;
+    }
+
+    .ctrl-btn:active {
+      background: rgba(0,240,255,0.2);
     }
   </style>
 </head>
 <body>
-  <h1>Desvie dos Inimigos</h1>
-  <p>Use as setas do teclado ou A / D para se mover</p>
+  <div class="wrapper">
+    <div class="title">VOID RUNNER</div>
+    <div class="subtitle">// SURVIVE THE VOID //</div>
 
-  <div id="hud">
-    <span>Pontos: <span id="score">0</span></span>
-    <span>Recorde: <span id="high-score">0</span></span>
-  </div>
-
-  <div id="game-container">
-    <div id="player"></div>
-
-    <div id="game-over">
-      <h2>Game Over</h2>
-      <p>Sua pontuação: <span id="final-score">0</span></p>
-      <button onclick="restartGame()">Jogar novamente</button>
+    <div class="hud">
+      <div class="hud-box">
+        <div class="hud-label">SCORE</div>
+        <div class="hud-value" id="score">0</div>
+      </div>
+      <div class="hud-box">
+        <div class="hud-label">LIVES</div>
+        <div class="lives" id="lives">
+          <span class="heart">♥</span>
+          <span class="heart">♥</span>
+          <span class="heart">♥</span>
+        </div>
+      </div>
+      <div class="hud-box">
+        <div class="hud-label">RECORD</div>
+        <div class="hud-value" id="high-score">0</div>
+      </div>
     </div>
-  </div>
 
-  <div class="instructions">
-    Sobreviva o máximo que puder.<br />
-    Quanto mais tempo passar, mais difícil fica.
+    <div id="game-container">
+      <div id="player">
+        <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Nave -->
+          <polygon points="22,4 34,38 22,30 10,38" fill="#00f0ff" opacity="0.9"/>
+          <polygon points="22,4 34,38 22,30 10,38" fill="none" stroke="#00f0ff" stroke-width="1"/>
+          <polygon points="22,28 28,38 16,38" fill="#030712"/>
+          <circle cx="22" cy="22" r="4" fill="#030712" stroke="#00f0ff" stroke-width="1.5"/>
+          <!-- Chama -->
+          <ellipse cx="22" cy="40" rx="5" ry="6" fill="#ff006e" opacity="0.8"/>
+          <ellipse cx="22" cy="40" rx="3" ry="4" fill="#ffcc00" opacity="0.9"/>
+        </svg>
+      </div>
+
+      <div id="game-over">
+        <h2>GAME OVER</h2>
+        <div class="go-score">SCORE <span id="final-score">0</span></div>
+        <div class="go-score" id="new-record" style="display:none; color: #ffcc00; text-shadow: 0 0 10px #ffcc00;">✦ NOVO RECORDE ✦</div>
+        <button class="btn" onclick="restartGame()">▶ JOGAR NOVAMENTE</button>
+      </div>
+
+      <div id="start-screen">
+        <h2>VOID RUNNER</h2>
+        <div class="instructions-list">
+          <b>← →</b> ou <b>A D</b> para mover<br>
+          Desvie dos meteoros<br>
+          Colete <b style="color:#7b2fff">◆</b> para escudo<br>
+          3 vidas — sobreviva!
+        </div>
+        <button class="btn" onclick="startFromScreen()">▶ INICIAR</button>
+      </div>
+    </div>
+
+    <div class="powerup-bar">
+      <div class="powerup-fill" id="powerup-bar"></div>
+    </div>
+
+    <div class="mobile-controls">
+      <button class="ctrl-btn" id="btn-left">◀</button>
+      <button class="ctrl-btn" id="btn-right">▶</button>
+    </div>
   </div>
 
   <script>
     const gameContainer = document.getElementById("game-container");
-    const player = document.getElementById("player");
+    const playerEl = document.getElementById("player");
     const scoreDisplay = document.getElementById("score");
     const highScoreDisplay = document.getElementById("high-score");
     const gameOverScreen = document.getElementById("game-over");
     const finalScoreDisplay = document.getElementById("final-score");
+    const newRecordEl = document.getElementById("new-record");
+    const powerupBar = document.getElementById("powerup-bar");
 
-    const gameWidth = 400;
-    const gameHeight = 600;
-    const playerWidth = 50;
-    const playerHeight = 50;
+    const GW = 400, GH = 580;
+    const PW = 44, PH = 44;
 
-    let playerX = 175;
+    let playerX = 178;
     let score = 0;
-    let highScore = localStorage.getItem("highScoreJogoBasico") || 0;
-    let gameRunning = true;
+    let highScore = parseInt(localStorage.getItem("voidRunnerHS") || "0");
+    let lives = 3;
+    let gameRunning = false;
     let enemies = [];
-    let enemySpeed = 3;
-    let spawnRate = 1000;
+    let powerups = [];
+    let particles = [];
+    let enemySpeed = 2.5;
+    let spawnRate = 1200;
     let moveLeft = false;
     let moveRight = false;
     let animationId;
-    let scoreInterval;
-    let enemyInterval;
-    let difficultyInterval;
+    let scoreInterval, enemyInterval, difficultyInterval, powerupInterval;
+    let shieldActive = false;
+    let shieldTimer = 0;
+    let shieldEl = null;
+    let invincible = false;
+    let trailInterval;
 
     highScoreDisplay.textContent = highScore;
 
-    function updatePlayerPosition() {
-      if (moveLeft) {
-        playerX -= 7;
+    // Cria estrelas de fundo
+    function createStars() {
+      for (let i = 0; i < 60; i++) {
+        const star = document.createElement("div");
+        star.classList.add("star");
+        const size = Math.random() * 2 + 0.5;
+        star.style.width = size + "px";
+        star.style.height = size + "px";
+        star.style.left = Math.random() * 100 + "%";
+        star.style.top = Math.random() * 100 + "%";
+        const duration = Math.random() * 6 + 4;
+        star.style.animationDuration = duration + "s";
+        star.style.animationDelay = -Math.random() * duration + "s";
+        star.style.opacity = Math.random() * 0.5 + 0.1;
+        gameContainer.appendChild(star);
       }
-      if (moveRight) {
-        playerX += 7;
-      }
-
-      if (playerX < 0) playerX = 0;
-      if (playerX > gameWidth - playerWidth) playerX = gameWidth - playerWidth;
-
-      player.style.left = playerX + "px";
     }
 
-    function createEnemy() {
-      if (!gameRunning) return;
+    createStars();
 
+    function updateLivesUI() {
+      const hearts = document.querySelectorAll(".heart");
+      hearts.forEach((h, i) => {
+        h.classList.toggle("lost", i >= lives);
+      });
+    }
+
+    function spawnEnemy() {
+      if (!gameRunning) return;
       const enemy = document.createElement("div");
       enemy.classList.add("enemy");
+      const x = Math.floor(Math.random() * (GW - 40));
+      enemy.style.left = x + "px";
 
-      const enemyX = Math.floor(Math.random() * (gameWidth - 45));
-      enemy.style.left = enemyX + "px";
-      enemy.style.top = "-50px";
+      // Tipos diferentes de inimigos
+      const type = Math.random();
+      let color, shape;
+      if (type < 0.5) {
+        color = "#ff4444"; shape = "meteor";
+      } else if (type < 0.8) {
+        color = "#ff8800"; shape = "fast";
+      } else {
+        color = "#cc44ff"; shape = "big";
+      }
+
+      const size = shape === "big" ? 52 : 40;
+      const spd = shape === "fast" ? enemySpeed * 1.8 : enemySpeed;
+
+      enemy.style.width = size + "px";
+      enemy.style.height = size + "px";
+      enemy.innerHTML = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="${size/2},4 ${size-4},${size*0.6} ${size-4},${size-4} 4,${size-4} 4,${size*0.6}"
+          fill="${color}" opacity="0.85" stroke="${color}" stroke-width="1"/>
+        <polygon points="${size/2},${size*0.3} ${size*0.7},${size*0.65} ${size*0.3},${size*0.65}"
+          fill="rgba(255,255,255,0.15)"/>
+        <circle cx="${size/2}" cy="${size*0.62}" r="${size*0.1}" fill="rgba(255,255,255,0.2)"/>
+      </svg>`;
+      enemy.style.filter = `drop-shadow(0 0 6px ${color})`;
 
       gameContainer.appendChild(enemy);
-
-      enemies.push({
-        element: enemy,
-        x: enemyX,
-        y: -50,
-        width: 45,
-        height: 45
-      });
+      enemies.push({ element: enemy, x, y: -50, width: size, height: size, speed: spd });
     }
 
-    function moveEnemies() {
-      enemies.forEach((enemy, index) => {
-        enemy.y += enemySpeed;
-        enemy.element.style.top = enemy.y + "px";
-
-        if (checkCollision(enemy)) {
-          endGame();
-        }
-
-        if (enemy.y > gameHeight) {
-          enemy.element.remove();
-          enemies.splice(index, 1);
-        }
-      });
+    function spawnPowerup() {
+      if (!gameRunning) return;
+      const pu = document.createElement("div");
+      pu.classList.add("powerup");
+      const x = Math.floor(Math.random() * (GW - 32));
+      pu.style.left = x + "px";
+      pu.innerHTML = `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,2 20,12 30,12 22,19 25,30 16,23 7,30 10,19 2,12 12,12"
+          fill="#7b2fff" stroke="#b87fff" stroke-width="1"/>
+        <circle cx="16" cy="16" r="5" fill="rgba(255,255,255,0.2)"/>
+      </svg>`;
+      pu.style.filter = "drop-shadow(0 0 8px #7b2fff)";
+      gameContainer.appendChild(pu);
+      powerups.push({ element: pu, x, y: -40, width: 32, height: 32 });
     }
 
-    function checkCollision(enemy) {
-      const playerRect = {
-        x: playerX,
-        y: gameHeight - 20 - playerHeight,
-        width: playerWidth,
-        height: playerHeight
-      };
+    function createExplosion(x, y, color) {
+      for (let i = 0; i < 12; i++) {
+        const p = document.createElement("div");
+        p.classList.add("particle");
+        p.style.left = x + "px";
+        p.style.top = y + "px";
+        p.style.background = color;
+        p.style.boxShadow = `0 0 4px ${color}`;
+        const angle = (i / 12) * Math.PI * 2;
+        const dist = 20 + Math.random() * 30;
+        const tx = Math.cos(angle) * dist;
+        const ty = Math.sin(angle) * dist;
+        p.style.transition = "all 0.5s ease-out";
+        gameContainer.appendChild(p);
+        requestAnimationFrame(() => {
+          p.style.transform = `translate(${tx}px, ${ty}px)`;
+          p.style.opacity = "0";
+        });
+        setTimeout(() => p.remove(), 500);
+      }
+    }
 
+    function activateShield() {
+      shieldActive = true;
+      shieldTimer = 5000;
+      if (!shieldEl) {
+        shieldEl = document.createElement("div");
+        shieldEl.classList.add("shield-ring");
+        playerEl.appendChild(shieldEl);
+      }
+      powerupBar.style.width = "100%";
+    }
+
+    function updatePlayer() {
+      const speed = 7;
+      if (moveLeft) playerX -= speed;
+      if (moveRight) playerX += speed;
+      playerX = Math.max(0, Math.min(GW - PW, playerX));
+      playerEl.style.left = playerX + "px";
+    }
+
+    function moveEnemies(dt) {
+      enemies = enemies.filter(e => {
+        e.y += e.speed;
+        e.element.style.top = e.y + "px";
+
+        if (!invincible && checkCollision(e, playerX, GH - 20 - PH, PW, PH)) {
+          createExplosion(e.x + e.width/2, e.y + e.height/2, "#ff4444");
+          e.element.remove();
+
+          if (shieldActive) {
+            shieldActive = false;
+            shieldTimer = 0;
+            if (shieldEl) { shieldEl.remove(); shieldEl = null; }
+            powerupBar.style.width = "0%";
+            invincible = true;
+            setTimeout(() => invincible = false, 1500);
+          } else {
+            lives--;
+            updateLivesUI();
+            const flash = document.createElement("div");
+            flash.classList.add("damage-flash");
+            gameContainer.appendChild(flash);
+            setTimeout(() => flash.remove(), 300);
+            invincible = true;
+            setTimeout(() => invincible = false, 1500);
+            if (lives <= 0) { endGame(); return false; }
+          }
+          return false;
+        }
+
+        if (e.y > GH) { e.element.remove(); return false; }
+        return true;
+      });
+
+      powerups = powerups.filter(pu => {
+        pu.y += 2;
+        pu.element.style.top = pu.y + "px";
+
+        if (checkCollision(pu, playerX, GH - 20 - PH, PW, PH)) {
+          createExplosion(pu.x + 16, pu.y + 16, "#7b2fff");
+          pu.element.remove();
+          activateShield();
+          return false;
+        }
+
+        if (pu.y > GH) { pu.element.remove(); return false; }
+        return true;
+      });
+
+      if (shieldActive) {
+        shieldTimer -= dt;
+        powerupBar.style.width = Math.max(0, (shieldTimer / 5000) * 100) + "%";
+        if (shieldTimer <= 0) {
+          shieldActive = false;
+          if (shieldEl) { shieldEl.remove(); shieldEl = null; }
+          powerupBar.style.width = "0%";
+        }
+      }
+    }
+
+    function checkCollision(obj, px, py, pw, ph) {
+      const margin = 8;
       return (
-        playerRect.x < enemy.x + enemy.width &&
-        playerRect.x + playerRect.width > enemy.x &&
-        playerRect.y < enemy.y + enemy.height &&
-        playerRect.y + playerRect.height > enemy.y
+        px + margin < obj.x + obj.width - margin &&
+        px + pw - margin > obj.x + margin &&
+        py + margin < obj.y + obj.height - margin &&
+        py + ph - margin > obj.y + margin
       );
     }
 
-    function gameLoop() {
+    let lastTime = 0;
+    function gameLoop(ts) {
       if (!gameRunning) return;
-
-      updatePlayerPosition();
-      moveEnemies();
-
+      const dt = ts - lastTime;
+      lastTime = ts;
+      updatePlayer();
+      moveEnemies(dt);
       animationId = requestAnimationFrame(gameLoop);
-    }
-
-    function startScore() {
-      scoreInterval = setInterval(() => {
-        if (!gameRunning) return;
-        score++;
-        scoreDisplay.textContent = score;
-      }, 100);
-    }
-
-    function startEnemies() {
-      enemyInterval = setInterval(() => {
-        createEnemy();
-      }, spawnRate);
-    }
-
-    function increaseDifficulty() {
-      difficultyInterval = setInterval(() => {
-        if (!gameRunning) return;
-
-        if (enemySpeed < 10) {
-          enemySpeed += 0.5;
-        }
-
-        if (spawnRate > 350) {
-          spawnRate -= 80;
-          clearInterval(enemyInterval);
-          startEnemies();
-        }
-      }, 4000);
     }
 
     function endGame() {
@@ -287,62 +722,96 @@
       clearInterval(scoreInterval);
       clearInterval(enemyInterval);
       clearInterval(difficultyInterval);
-
-      if (score > highScore) {
-        highScore = score;
-        localStorage.setItem("highScoreJogoBasico", highScore);
-        highScoreDisplay.textContent = highScore;
-      }
+      clearInterval(powerupInterval);
+      clearInterval(trailInterval);
 
       finalScoreDisplay.textContent = score;
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("voidRunnerHS", highScore);
+        highScoreDisplay.textContent = highScore;
+        newRecordEl.style.display = "block";
+      } else {
+        newRecordEl.style.display = "none";
+      }
       gameOverScreen.style.display = "flex";
     }
 
     function restartGame() {
-      enemies.forEach(enemy => enemy.element.remove());
-      enemies = [];
-
-      playerX = 175;
-      score = 0;
-      enemySpeed = 3;
-      spawnRate = 1000;
-      gameRunning = true;
-
-      player.style.left = playerX + "px";
-      scoreDisplay.textContent = score;
+      enemies.forEach(e => e.element.remove());
+      powerups.forEach(p => p.element.remove());
+      enemies = []; powerups = [];
+      if (shieldEl) { shieldEl.remove(); shieldEl = null; }
+      shieldActive = false; shieldTimer = 0;
+      playerX = 178; score = 0; lives = 3;
+      enemySpeed = 2.5; spawnRate = 1200;
+      gameRunning = true; invincible = false;
+      playerEl.style.left = playerX + "px";
+      scoreDisplay.textContent = 0;
+      powerupBar.style.width = "0%";
+      updateLivesUI();
       gameOverScreen.style.display = "none";
-
-      startGame();
+      startIntervals();
+      lastTime = performance.now();
+      animationId = requestAnimationFrame(gameLoop);
     }
 
-    function startGame() {
-      startScore();
-      startEnemies();
-      increaseDifficulty();
-      gameLoop();
+    function startFromScreen() {
+      document.getElementById("start-screen").style.display = "none";
+      restartGame();
     }
 
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") {
-        moveLeft = true;
-      }
+    function startIntervals() {
+      scoreInterval = setInterval(() => {
+        if (!gameRunning) return;
+        score++;
+        scoreDisplay.textContent = score;
+      }, 100);
 
-      if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") {
-        moveRight = true;
-      }
+      enemyInterval = setInterval(() => { spawnEnemy(); }, spawnRate);
+
+      powerupInterval = setInterval(() => {
+        if (Math.random() < 0.4) spawnPowerup();
+      }, 6000);
+
+      difficultyInterval = setInterval(() => {
+        if (!gameRunning) return;
+        if (enemySpeed < 12) enemySpeed += 0.4;
+        if (spawnRate > 350) {
+          spawnRate = Math.max(350, spawnRate - 70);
+          clearInterval(enemyInterval);
+          enemyInterval = setInterval(() => { spawnEnemy(); }, spawnRate);
+        }
+      }, 4000);
+
+      trailInterval = setInterval(() => {
+        if (!gameRunning) return;
+        const trail = document.createElement("div");
+        trail.classList.add("player-trail");
+        trail.style.left = (playerX + PW/2 - 3) + "px";
+        trail.style.top = (GH - 20 - PH + PH - 4) + "px";
+        gameContainer.appendChild(trail);
+        setTimeout(() => trail.remove(), 400);
+      }, 60);
+    }
+
+    // Teclado
+    document.addEventListener("keydown", e => {
+      if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") moveLeft = true;
+      if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") moveRight = true;
+    });
+    document.addEventListener("keyup", e => {
+      if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") moveLeft = false;
+      if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") moveRight = false;
     });
 
-    document.addEventListener("keyup", (event) => {
-      if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") {
-        moveLeft = false;
-      }
-
-      if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") {
-        moveRight = false;
-      }
-    });
-
-    startGame();
+    // Botões mobile
+    const btnLeft = document.getElementById("btn-left");
+    const btnRight = document.getElementById("btn-right");
+    btnLeft.addEventListener("pointerdown", () => moveLeft = true);
+    btnLeft.addEventListener("pointerup", () => moveLeft = false);
+    btnRight.addEventListener("pointerdown", () => moveRight = true);
+    btnRight.addEventListener("pointerup", () => moveRight = false);
   </script>
 </body>
 </html>
